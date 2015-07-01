@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% load filters %}
+
+{% block title %}{{project_name}}: List of records{% endblock %}
+
+{% block header %}
+<li class="divider"></li>
+<li><a href="/{{project_name}}/">{{project_name}}</a></li>
+<li class='divider-vertical'></li>  
+<li>
+  <a href="/{{project_name}}/data/">
+    Switch to Data view
+  </a>
+</li> 
+<li class='divider-vertical'></li>   
+<li>
+  <a class="settings_togg">
+    <i class="icon-cog" style='margin-top:8px'></i> Settings
+  </a>
+<li class='divider-vertical'></li>  
+{% endblock %}
+
+
+{% block content %} 
+
+
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css"
+      href="/media/css/jquery.dataTables.css">
+
+<!-- DataTables -->
+<script type="text/javascript" charset="utf8"
+        src="/media/js/jquery.dataTables.js"></script>
+
+
+{% include "comparison_window.html" %}
+
+
+<style>
+ /* Color definition for selected row(s) */
+ table.dataTable tbody tr.selected  {
+   background-color: #96C4EA; !important; 
+ }
+ table.dataTable.hover tbody tr:hover.selected,
+ table.dataTable.hover tbody tr.odd:hover.selected,
+ table.dataTable.hover tbody tr.even:hover.selected, 
+ table.dataTable.display tbody tr:hover.selected,
+ table.dataTable.display tbody tr.odd:hover.selected,
+ table.dataTable.display tbody tr.even:hover.selected {
+   background-color: #96C4EA; !important;
+ }
+</style>
+
+
+<script>
+
+  $(document).ready( function () {
+  
+  /* comparison window modal init and subsequent hide */
+  $('#compareSim').modal().modal('hide');  
+
+
+  /* compare selected records */
+  $(function () {
+    $("#cc_compare").on('click', function() {
+
+      /* collect IDs (=record label) of selected rows */
+      var selected_labels = [];
+      $('.selected').each(function(){
+        selected_labels.push($(this).attr('id'))
+      })
+
+      $.ajax({
+        url:"ajax/compare_selected_records",
+        type: "GET",
+        data: {selection: selected_labels},
+        success:function(response){
+          $('#compareSim').html(response);},
+        complete:function(){},
+        error:function (xhr, textStatus, thrownError){}
+      }); 
+
+      $('#compareSim').modal('show'); 
+
+    });
+  });
+
+
+  var hd_cl = {{settings.record_hidden_cols|as_json|safe}};
+  var record_list = $('#record_dt').DataTable({
+    "columnDefs": [
+      {"sortable":false,  "targets":["repository-c", "label-c",
+       "tag-c", "reason-c", "outcome-c", "main-c", "version-c",
+       "input-c", "output-c", "arguments-c"]},   
+      <!--{"visible":false, "targets": hd_cl},-->
+      {"visible":false, "targets": ["arguments-c", "repository-c", "processes-c"]},
+    ],
+    <!--"dom": 'lfrC<"clear">tip',     <!-- Order: 'l'ength, 'f'ilter,  p'r'ocessing, 'C'olumns, 't'able, 'i'nformation, 'p'agination -->
+    "paging": true,
+    "ordering": true,
+    "info": true, <!-- "Showing x of y entries" -->
+    "filter": true, 
+    "lengthChange": false,
+    "autoWidth": false,
+    "order": [[$('th.time-c').index(), "desc"]], <!-- default sort column -->
+    } );
+
+
+    /* Multiple Row Select:
+       click        selects a single row 
+       Ctrl+click   can select multiples   */
+    $('#record_dt tbody').on( 'click', 'tr', function (event) {
+      if (event.ctrlKey) {
+        $(this).toggleClass('selected');
+      }
+      else {
+        if (record_list.rows('.selected').data().length == 0) {
+          $(this).toggleClass('selected');
+        }
+        else {
+          if ($(this).hasClass('selected')) {
+            $('.selected').toggleClass('selected')
+          }
+          else {
+            $('.selected').toggleClass('selected')
+            $(this).toggleClass('selected');
+          }
+        }
+      }
+    } );
+
+    /* Deselect rows for clicks outside of table */
+    $(document).click(function(event) { 
+      if(!$(event.target).closest('#record_dt').length) {
+          $('.selected').toggleClass('selected')
+      }        
+    })
+
+
+    $('a.settings_togg').on('click', function(e) {
+      e.preventDefault();
+      $('#settings_panel').toggle()
+      $('#settings_panel2').toggle()
+    })
+
+    /* Column visibility toggle */
+    $('input.check-item').on( 'change', function (e) {
+        e.preventDefault();
+
+        // Get the column API object
+        var column = record_list.column($(this).attr('data-column')
+        );
+
+        console.log($(this).attr('data-column'))
+ 
+        // Toggle the visibility
+        column.visible( ! column.visible() );
+
+        <!--console.log($.get("/{{project_name}}/settings"))-->
+
+        // save settings to .smtrc
+        // $.post("/{{project_name}}/settings", {'record_hidden_cols':['murloc'],'saveSettings':true}); 
+    } );
+
+
+    /* Save changes button */   
+    $('#save_set').click(function(){  
+      record_list.page.len($('#s_nbt').val());
+      record_list.draw();
+    });
+
+    /* close settings button */
+    $('#close_settings').click(function(){  
+      $('#settings_panel').toggle()
+      $('#settings_panel2').toggle()
+    });
+
+
+    /* Arrow key page turning */
+    document.onkeydown = checkKey;
+    function checkKey(e) {
+
+      e = e || window.event;
+
+      if (e.keyCode == '37') {
+        record_list.page('previous').draw(false);
+      }
+      else if (e.keyCode == '39') {
+        record_list.page('next').draw(false);
+      }
+    }
+
+  } );
+
+</script>
+
+
+
+
+<div id='settings_panel' style='display:none;'>
+  <br/>
+  <label class="checkbox">
+    <input type="checkbox" id='repository' class='check-item' 
+           data-column='0' >
+    Repository
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='label' class='check-item'
+    data-column='1'  checked="checked">
+    Label
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='tag' class='check-item' data-column='2'
+     checked="checked">
+    Tag
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='reason' class='check-item'
+    data-column='3' checked="checked">
+    Reason
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='outcome' class='check-item'
+    data-column='4'  checked="checked"> 
+    Outcome
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='input' class='check-item'
+    data-column='5'  checked="checked"> 
+    Input
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='output' class='check-item'
+    data-column='6'  checked="checked"> 
+    Output
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='duration' class='check-item'
+    data-column='7' checked="checked"> 
+    Duration
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='processes' class='check-item'
+    data-column='8'>
+    Processes
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='time' class='check-item'
+    data-column='9' checked="checked">
+    Date/Time
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='ename' class='check-item'
+    data-column='10' checked="checked">
+    Executable
+  </label>
+
+  <label class="checkbox">
+    <input type="checkbox" id='main' class='check-item'
+    data-column='11' checked="checked">
+    Script main file
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='version' class='check-item'
+           data-column='12' checked="checked"> 
+    Script version
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" id='arguments' class='check-item'
+    data-column='13'> Script
+    arguments
+  </label>
+  <div style='float:left; padding:8px; padding-left:0px'>Number of
+    records per page:</div>
+  <input id='s_nbt' class='span1' type='text' style='float:left;margin-bottom:0px' value='{{settings.nb_records_per_page}}'>
+  </div>
+  <div id="settings_panel2" class="modal-footer" style='display:none;'>
+    <a class="btn" data-dismiss="modal" id='close_settings'>Close</a>
+    <a class="btn btn-primary" id='save_set'>Apply changes</a>
+  </div>
+</div>
+
+
+
+
+
+
+
+<div style="margin-left:2%; margin-right:3%">
+
+
+<button type="button" class="btn btn-default" data-dismiss="modal"
+        id='cc_compare'>Compare Records</button>
+
+
+<table class='hover row-border' id='record_dt'>
+
+  <thead>
+    <tr>
+      <th class='repository-c'>Repository</th>
+      <th class='label-c'>Label</th>
+      <th class='tag-c'>Tag</th>
+      <th class='reason-c'>Reason</th>
+      <th class='outcome-c'>Outcome</th>
+      <th class='input-c'>Input&nbsp;data</th>
+      <th class='output-c'>Output&nbsp;data</th>
+      <th class='duration-c'>Duration</th>
+      <th class='processes-c'>Processes</th>
+      <th class='time-c'>Date/Time</th>
+      <th class='exec-c'>Exec.</th>
+      <th class='main-c'>Main</th>
+      <th class='version-c'>Version</th>
+      <th class='arguments-c'>Arguments</th>
+    </tr>
+  </thead>
+
+  <tbody>
+
+    {% for record in sim_list %}
+
+    <tr id='{{record.label}}'>         
+      <td class='dataTable_td' id='repository-t'>
+        <span class="span-box">
+          {{record.repository.url|cut:"repo"}}
+        </span>
+      </td>
+      <td class='dataTable_td' id='label-t'>
+        <a href="/{{project_name}}/{{record.label}}/">
+          {{record.label|ubreak}}
+        </a> 
+        
+      </td> 
+      {% if tag %}
+      <td class='dataTable_td' id='tag-t'>
+        {% for other_tag in record.tag_objects %}
+        {% if tag == other_tag %}
+        {{tag}} 
+        {% else %}
+        <!--<a href="#">
+          {{other_tag.name}}
+        </a>--> <!-- Fix Link!! -->
+        {% endif %}
+        {% endfor %}
+      </td>
+      {% else %}
+      <td class='dataTable_td' id='tag-t'>
+        {% for tag in record.tag_objects %}
+        <!--<a href="#">-->{{tag}}<!---</a>-->, <!-- Fix Link!! -->
+        {% endfor %}
+      </td> 
+      {% endif %}
+
+      <td class='dataTable_td' id='reason-t'>
+        {{record.reason}}
+      </td>
+      <td class='dataTable_td' id='outcome-t'>
+        {{record.outcome}}
+      </td>
+      <td class='dataTable_td' id='input-t'>
+        {% for data in record.input_data.all %}
+          <a href="/{{project_name}}/data/datafile?path={{data.path|urlencode}}&digest={{data.digest}}">
+            {{data.path|basename|ubreak}}<!--
+           --></a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </td>
+      <td class='dataTable_td' id='output-t'>
+        {% for data in record.output_data.all %}
+          <a href="/{{project_name}}/data/datafile?path={{data.path|urlencode}}&digest={{data.digest}}">
+            {{data.path|basename|ubreak}}<!--
+          --></a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </td>
+      <td class='dataTable_td' id='duration-t'
+          data-sort='{{record.duration}}'>
+        {{record.duration|human_readable_duration}}
+      </td>
+      <td class='dataTable_td' id='processes-t'>
+        {{record.launch_mode.get_parameters.n|default:"1"}}
+      </td>
+      <td class='dataTable_td' id='time-t'>
+        <span style='display:none;'>
+          <!-- hack for correct sorting -->
+          {{record.timestamp|date:"YmdHis"}}
+        </span>
+        {{record.timestamp|date:"d/m/Y H:i:s"}}
+      </td>
+      <td class='dataTable_td' id='ename-t'>
+        {{record.executable.name}} {{record.executable.version}}
+      </td>
+      <td class='dataTable_td' id='main-t'>
+        <!--<a class='id-script'  data-toggle="modal" href="#">-->
+          {{record.main_file|ubreak}}
+        <!--</a>--> <!-- Fix Link!! -->
+      </td>
+      <td class='dataTable_td' id='version-t'>
+        <span class="span-box">
+          {{record.version|cut:"vers"}}
+          {% if record.diff %}
+          *
+          {% endif %}
+        </span>
+      </td>
+      <td class='dataTable_td' id='arguments-t'>
+        <a class='href_args' href='#'>
+          {{record.script_arguments}}
+        </a> <!-- Fix Link!! -->
+      </td> 
+    </tr>
+    {% endfor %}
+  <tbody>
+</table>
+</div>
+
+ 
+
+{% endblock %}
+

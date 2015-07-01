@@ -1,0 +1,19 @@
+include doc/*.txt
+include doc/images/*.png
+include doc/releases/*.txt
+include COPYING
+include sumatra/web/media/css/*.css
+include sumatra/web/media/img/*.png
+include sumatra/web/media/js/*.js
+recursive-include sumatra/web/media/extras/fontawesome *
+include sumatra/web/templates/*.html
+include sumatra/publishing/latex/sumatra.sty
+include sumatra/formatting/latex_template.tex
+recursive-include test/example_projects *
+recursive-include test/example_repositories *
+include test/unittests/*.py
+include test/unittests/README
+include test/unittests/all_tests.sh
+include test/unittests/example*.json
+include test/*.py
+include distribute_setup.py
