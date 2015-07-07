@@ -26,9 +26,15 @@ else
 fi
 
 # DDSM Api token
-token=`cat .ddsm_token`
-echo "The DDSM API token is: $token."
-echo "It is not used yet but will be very soon! :-)"
+token=`cat .ddsm-token`
+
+container_path=`pwd`
+data_path="$(dirname "$container_path")/ddsm-demo-data/data"
+
+echo "$token"
+
+echo "$data_path"
+echo "$container_path"
 
 if [ $manage_command == "build" ]; then
 	echo "Building the container $simulation_name..."
@@ -42,8 +48,8 @@ elif [ $manage_command == "run-core" ]; then
 	echo "Enter the executable command: "
 	read execute_cmd
 	# Warning:: Path to data should not have spaces. Be careful with muli-words directories names.
-	data_path='/home/fyc/Documents/Projects/NIST/DDSM/demo/simul-data'
-	container_path='/home/fyc/Documents/Projects/NIST/DDSM/demo/demo-sumatra'
+	# data_path=`dirname $file`
+	# container_path=`pwd`
 	echo "$data_path"
 	#--executable=python --main=main.py default.param
 	#Add the input data volume or files here to provide them to 
@@ -54,11 +60,11 @@ elif [ $manage_command == "run-core" ]; then
 	   echo "$container_path"/"$image_name"
 	   echo "New container image detected."
 	   # echo `curl -X GET http://0.0.0.0:5100/api/v1/private/3a8d4cc793bd3e5b85c733b523584545991ea74ebe91ff51c7945e10bdc97e40/project/pull/repro_lab`
-	   docker run -i -t -v "$container_path"/"$image_name":/src/container.tar -v "$data_path"/default.param:/src/default.param $simulation_name /bin/bash -c "cd /src; git config --global user.name \"scientist\"; git config --global user.email \"scientist@domain.com\"; git init; git add --all; git commit -m \"init.\"; smt init demo-sumatra; smt configure --store=\"http://10.0.0.184:5100/api/v1/private/3a8d4cc793bd3e5b85c733b523584545991ea74ebe91ff51c7945e10bdc97e40\"; smt run --container=container.tar $execute_cmd"
+	   docker run -i -t -v "$container_path"/"$image_name":/src/container.tar -v "$data_path"/default.param:/src/default.param -v "$data_path"/romans.param:/src/romans.param $simulation_name /bin/bash -c "cd /src; git config --global user.name \"scientist\"; git config --global user.email \"scientist@domain.com\"; git init; git add --all; git commit -m \"init.\"; smt init ddsm-demo; smt configure --store=\"http://52.26.175.218:5100/api/v1/private/$token\"; smt run --container=container.tar $execute_cmd"
 	   rm -rf *docker_image.tar
 	else
 	   echo "No container to send."
-	   docker run -i -t -v "$data_path"/default.param:/src/default.param $simulation_name /bin/bash -c "cd /src; git config --global user.name \"scientist\"; git config --global user.email \"scientist@domain.com\"; git init; git add --all; git commit -m \"init.\"; smt init demo-sumatra; smt configure --store=\"http://10.0.0.184:5100/api/v1/private/3a8d4cc793bd3e5b85c733b523584545991ea74ebe91ff51c7945e10bdc97e40\"; smt run $execute_cmd"
+	   docker run -i -t -v "$data_path"/default.param:/src/default.param -v "$data_path"/romans.param:/src/romans.param $simulation_name /bin/bash -c "cd /src; git config --global user.name \"scientist\"; git config --global user.email \"scientist@domain.com\"; git init; git add --all; git commit -m \"init.\"; smt init ddsm-demo; smt configure --store=\"http://52.26.175.218:5100/api/v1/private/$token\"; smt run $execute_cmd"
 	fi	
 	echo "Container $simulation_name killed."
 elif [ $manage_command == "run-web" ]; then
@@ -66,18 +72,18 @@ elif [ $manage_command == "run-web" ]; then
 	echo "Enter the executable command: "
 	read execute_cmd
 	# Warning:: Path to data should not have spaces. Be careful with muli-words directories names.
-	data_path='/home/fyc/Documents/Projects/NIST/DDSM/demo/simul-data'
-	echo "$data_path"
+	# data_path=`dirname $file`
+	# echo "$data_path"
 	#--executable=python --main=main.py default.param
 	#Add the input data volume or files here to provide them to 
 	# Add API token to smt in a certain way. We will have to smt configure. It is better to leave it outside here. Or the same key will be used
 	# which does not help for sharing. It should be in a form of an http store link. ddsm://domain:token.
 	if [ -f *docker_image.tar ]; then
 	   echo "New container image detected."
-	   docker run -i -t -p 127.0.0.1:5000:5000 -v "$data_path"/default.param:/src/default.param $simulation_name /bin/bash -c "cd /src; smt run $execute_cmd; smtweb -p 5000 --allips"
+	   docker run -i -t -p 127.0.0.1:5000:5000 -v "$data_path"/default.param:/src/default.param -v "$data_path"/romans.param:/src/romans.param $simulation_name /bin/bash -c "cd /src; smt run $execute_cmd; smtweb -p 5000 --allips"
 	   rm -rf *docker_image.tar
 	else
-	   docker run -i -t -p 127.0.0.1:5000:5000 -v "$data_path"/default.param:/src/default.param $simulation_name /bin/bash -c "cd /src; smt run $execute_cmd; smtweb -p 5000 --allips"
+	   docker run -i -t -p 127.0.0.1:5000:5000 -v "$data_path"/default.param:/src/default.param -v "$data_path"/romans.param:/src/romans.param $simulation_name /bin/bash -c "cd /src; smt run $execute_cmd; smtweb -p 5000 --allips"
 	fi	
 	echo "Container $simulation_name killed."
 elif [ $manage_command == "stop" ]; then

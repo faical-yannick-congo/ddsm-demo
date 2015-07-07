@@ -27,8 +27,8 @@ RUN pip install GitPython==0.3.6 Django==1.6 django-tagging==0.3 httplib2 jinja2
 
 # Including files.
 COPY . /src
-RUN cd /src/sumatra; python setup.py install
-RUN cd /src; rm -rf sumatra/
+RUN cd /src/sumatra-integrate; python setup.py install
+RUN cd /src; rm -rf sumatra-integrate/
 
 # Setup Sumatra
 # RUN git config --global user.email "scientist_email@domain.com"
@@ -54,7 +54,7 @@ RUN echo "Y" | apt-get install python-numpy
 # RUN cd /src; pip install -r requirements.txt
 
 # Usage
-# To Build: ./manage.sh --build --simulation demo-sumatra
-# To Run without smtweb: ./manage.sh --run-core --simulation demo-sumatra
-# To Run with smtweb./manage.sh --run-web --simulation demo-sumatra
-# To force Stop: ./manage.sh --stop --simulation demo-sumatra
+# To Build: ./manage.sh --build --simulation ddsm-demo
+# To Run without smtweb: ./manage.sh --run-core --simulation ddsm-demo
+# To Run with smtweb./manage.sh --run-web --simulation ddsm-demo
+# To force Stop: ./manage.sh --stop --simulation ddsm-demo

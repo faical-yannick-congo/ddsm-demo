@@ -93,7 +93,7 @@ class DDSMRecordStore(RecordStore):
 
     def create_project(self, project_name, long_name='', description='', goals=''):
         url = "%sproject/push/%s" % (self.server_url, project_name)
-        data = serialization.encode_project_info(long_name, description=json_data["outcome"], goals=json["reason"])
+        data = serialization.encode_project_info(long_name, description=description, goals=goals)
         headers = {'Content-Type': 'application/json'}
         response, content = self.client.request(url, 'POST', data, headers=headers)
         if response.status != 201:
@@ -173,11 +173,11 @@ class DDSMRecordStore(RecordStore):
                 # ref_buffer.seek(0)
 
                 # print "%s"%ref_buffer.read()
-                files.append(("image", local, ref_buffer.read().decode("ascii", "ignore")))
+                files.append(("image", local, ref_buffer.read().decode("ascii", "replace")))
 
             content_type, body = self.encode_multipart_formdata([], files)
             headers = {'Content-Type': content_type}
-            response, content = self.client.request(url, 'POST', body.encode("ascii", "ignore"), headers=headers)
+            response, content = self.client.request(url, 'POST', body.encode("ascii", "replace"), headers=headers)
             if response.status != 201:
                 raise RecordStoreAccessError("%d\n%s" % (response.status, content))
 
